@@ -2,8 +2,10 @@ import React, { useState, useEffect } from 'react'
 import { Line } from 'react-chartjs-2';
 import { increase_alpha, get_random_color } from '../utils/utils'
 import { FontAwesomeIcon } from '@fortawesome/react-fontawesome'
-import { faChevronLeft, faChevronRight, faTimes, faArrowUp, faArrowRight } from '@fortawesome/free-solid-svg-icons'
+import { faChevronLeft, faChevronRight, faTimes, faArrowUp, faArrowRight, faShareSquare } from '@fortawesome/free-solid-svg-icons'
 import { SketchPicker } from 'react-color';
+import { SpinnerCircularFixed } from 'spinners-react';
+import axios from 'axios';
 
 const MainPage = () => {
   const [datasets, setDatasets] = useState([])
@@ -14,13 +16,18 @@ const MainPage = () => {
   const [chartName, setChartName] = useState('')
   const [displayDatasets, setDisplayDatasets] = useState([])
   const [lineMode, setLineMode] = useState(1)
+  const [loading, setLoading] = useState(false)
+  const [awaiting, setAwaiting] = useState(false)
+  const [shareMessage, setShareMessage] = useState('')
+  const [shareId, setShareId] = useState(null)
+
+  useEffect(() => {
+    const { pathname } = window.location;
+    if (pathname.startsWith('/share/')) loadShare(pathname.replace('/share/',''))
+  }, [])
 
   useEffect(() => {
     const _datasets = datasets.slice()
-
-    // edit datasets in a way that doesnt take all the space in the world ?
-    // const encoded = encodeURIComponent(JSON.stringify(_datasets))
-    // window.history.pushState("", "Charts for Genshin Optimizer", `/share/${encoded}`);
 
     let edgePoint = null;
 
@@ -46,6 +53,67 @@ const MainPage = () => {
     
     setDisplayDatasets(_displayDatasets)
   }, [datasets, lineMode])
+
+  useEffect(() => {
+    setShareId(null);
+  }, [datasets, lineMode, suffixX, suffixY, chartName])
+
+  const loadShare = async (_shareId) => {
+    setLoading(true);
+    const url = `https://mimee.ovh/api/share/${_shareId}`
+    
+    try {
+      const response = await axios.get(url);
+      setTimeout(() => {
+        setLineMode(response.data.lineMode)
+        setDatasets(response.data.datasets)
+        setSuffixX(response.data.suffixX)
+        setSuffixY(response.data.suffixY)
+        setChartName(response.data.chartName)
+        setTimeout(() => setShareId(_shareId), 0)
+        setLoading(false);
+      }, 500)
+    } catch (e) {
+      setLoading(false);
+    }
+  }
+
+  const shareChart = async () => {
+    setAwaiting(true);
+    
+    const url = 'https://mimee.ovh/api/share/'
+    
+    try {
+      const dataToSave = {
+        lineMode,
+        datasets,
+        suffixX,
+        suffixY,
+        chartName,
+      }
+      const response = await axios.post(url, dataToSave);
+      window.history.pushState("", "Charts for Genshin Optimizer", `/share/${response.data.id}`);
+      setShareId(response.data.id)
+
+      setTimeout(() => {
+        setAwaiting(false);
+        setShareMessage('Success!')
+        resetShareMessage()
+      }, 500)
+
+    } catch (err) {
+      console.log(err)
+
+      setTimeout(() => {
+        setAwaiting(false);
+        setShareMessage('Error!')
+        resetShareMessage()
+      }, 500)
+    }
+
+  }
+
+  const resetShareMessage = () => setTimeout(() => setShareMessage(''), 4000);
 
   const generateLineChart = (input, edgePoint) => {
 
@@ -232,147 +300,173 @@ const MainPage = () => {
 
   return (
     <div className="page-wrapper">
+    { shareId && (
+      <div className='chart-link'>
+        Share link:
+        <input
+          onClick={e => e.currentTarget.setSelectionRange(0, e.currentTarget.value.length)}
+          value={window.location.href}
+        />
+      </div>
+    )}
       <div className="card-wrapper">
         <div className="card-content">
-          {datasets.length > 0 && (
-            <div className="paste-list">
-              <div>
-                <div className="smol-header">
-                  Manage datasets
-                  <div className="half-transparent">(double click input to randomize new color)</div>
-                </div>
-                <div className="paste-container">
-                  <div className="toolbox" tabIndex={0}>
-                    <SketchPicker
-                      color={currentColor} // increase_alpha(datasets[currentDataset]?.backgroundColor, 1) || undefined}
-                      onChange={(color) => setCurrentColor(color)}
-                      onChangeComplete={handleChangeColor}
-                    />
-                  </div>
-                  {datasets.map( (x, i) => (
-                    <span key={`label-${x.label}`} className="single-paste">
-                      <input
-                        defaultValue={x.label}
-                        onFocus={() => {
-                          setCurrentDataset(i)
-                          setCurrentColor(increase_alpha(datasets[i].backgroundColor, 1) )
-                        }}
-                        onBlur={(e) => changeDatasetName(e, i)}
-                        onKeyDown={(e) => {
-                          if (e.key === 'Enter') {
-                            changeDatasetName(e, i);
-                            e.currentTarget.blur();
-                          }
-                        }}
-                        onDoubleClick={() => randomizeDatasetColor(i)}
-                        style={{
-                          background: `linear-gradient(to right, ${increase_alpha(x.backgroundColor,1)} 0%, ${increase_alpha(x.backgroundColor,1)} 20%, #1b263b 20%)`
-                        }}
-                      />
-                      <button
-                        title="Remove dataset"
-                        className="btn"
-                        onClick={() => deleteDataset(i)}
-                      >
-                        <FontAwesomeIcon icon={faTimes} />
-                      </button>
-                      <div className="position-changer">
-                        { i !== 0 && (
-                          <span
-                            title="Move left"
-                            className="arrow-btn"
-                            onClick={() => moveDataset(i, -1)}
-                          >
-                            <FontAwesomeIcon size="xs" icon={faChevronLeft} />
-                          </span>
-                        )}
-                        { i !== datasets.length - 1 && (
-                          <span
-                            title="Move right"
-                            className="arrow-btn"
-                            onClick={() => moveDataset(i, 1)}
-                          >
-                            <FontAwesomeIcon size="xs" icon={faChevronRight} />
-                          </span>
-                        )}
-                      </div>
-                    </span>
-                  ))}
-                </div>
-              </div>
+          { loading ? (
+            <div className='loading-chart-wrapper'>
+              <SpinnerCircularFixed className='loading-chart' size={64} />
             </div>
-          )}
-          <div className="inputs-wrapper">
-            {datasets.length > 0 && (
-              <div className="paste-wrapper">
-                <input
-                  className="chart-name-input"
-                  placeholder="Chart name (e.g. Beidou Burst DMG vs ER%)"
-                  onBlur={(e) => setChartName(e.currentTarget.value)}
-                  onKeyDown={(e) => {
-                    if (e.key === 'Enter') {
-                      setChartName(e.currentTarget.value);
-                      e.currentTarget.blur();
-                    }
-                  }}
-                />
-                <div className="set-line-btn" onClick={() => setLineMode( Number(!lineMode) )}>
-                  
-                
-                  { lineMode ? <>
-                      <FontAwesomeIcon icon={faArrowRight} />
-                        {' Descending Line'}
-                      </> 
-                    : <>
-                      <FontAwesomeIcon icon={faArrowUp} />
-                        {' Ascending Line'}
-                      </> 
-                    }
-                </div>
-              </div>
-            )}
-            <div className="paste-wrapper">
-              <textarea
-                placeholder="Paste Genshin Optimizer Chart's Min or Full Data here..."
-                onChange={pasteToDataset}
-              />
+          ) : (
+            <>
               {datasets.length > 0 && (
-                <div className="flex-col">
-                  <input onChange={(e) => setSuffixY(e.currentTarget.value)} placeholder="Y-axis (e.g. dmg)" />
-                  <input onChange={(e) => setSuffixX(e.currentTarget.value)} placeholder="X-axis (e.g. % ER)" />
+                <div className="paste-list">
+                  <div>
+                    <div className='charts-manager'>
+                      { awaiting ? (
+                        <SpinnerCircularFixed className='share-btn' size={32} />
+                      ) : (
+                        <div onClick={() => shareChart()} className='share-btn pointer spacing'>
+                          { shareMessage || 'Save / Share' }
+                          <FontAwesomeIcon icon={faShareSquare} />
+                        </div>
+                      )}
+                    </div>
+                    <div className="smol-header">
+                      Manage datasets
+                      <div className="half-transparent">(double click input to randomize new color)</div>
+                    </div>
+                    <div className="paste-container">
+                      <div className="toolbox" tabIndex={0}>
+                        <SketchPicker
+                          color={currentColor} // increase_alpha(datasets[currentDataset]?.backgroundColor, 1) || undefined}
+                          onChange={(color) => setCurrentColor(color)}
+                          onChangeComplete={handleChangeColor}
+                        />
+                      </div>
+                      {datasets.map( (x, i) => (
+                        <span key={`label-${x.label}`} className="single-paste">
+                          <input
+                            defaultValue={x.label}
+                            onFocus={() => {
+                              setCurrentDataset(i)
+                              setCurrentColor(increase_alpha(datasets[i].backgroundColor, 1) )
+                            }}
+                            onBlur={(e) => changeDatasetName(e, i)}
+                            onKeyDown={(e) => {
+                              if (e.key === 'Enter') {
+                                changeDatasetName(e, i);
+                                e.currentTarget.blur();
+                              }
+                            }}
+                            onDoubleClick={() => randomizeDatasetColor(i)}
+                            style={{
+                              background: `linear-gradient(to right, ${increase_alpha(x.backgroundColor,1)} 0%, ${increase_alpha(x.backgroundColor,1)} 20%, #1b263b 20%)`
+                            }}
+                          />
+                          <button
+                            title="Remove dataset"
+                            className="btn"
+                            onClick={() => deleteDataset(i)}
+                          >
+                            <FontAwesomeIcon icon={faTimes} />
+                          </button>
+                          <div className="position-changer">
+                            { i !== 0 && (
+                              <span
+                                title="Move left"
+                                className="arrow-btn"
+                                onClick={() => moveDataset(i, -1)}
+                              >
+                                <FontAwesomeIcon size="xs" icon={faChevronLeft} />
+                              </span>
+                            )}
+                            { i !== datasets.length - 1 && (
+                              <span
+                                title="Move right"
+                                className="arrow-btn"
+                                onClick={() => moveDataset(i, 1)}
+                              >
+                                <FontAwesomeIcon size="xs" icon={faChevronRight} />
+                              </span>
+                            )}
+                          </div>
+                        </span>
+                      ))}
+                    </div>
+                  </div>
                 </div>
               )}
-              {/* <button onClick={() => setDatasets([])} className="btn">Clear</button> */}
-            </div>
-            {datasets.length > 0 && (
-              <div className="chart-legend">
-                {datasets.map( (d,i) => (
-                  <span 
-                    onClick={ () => toggleDatasetVisibility(i) }
-                    style={{
-                      'text-decoration': d.hidden ? 'line-through' : 'none',
-                      opacity: d.hidden ? 0.4 : 1,
-                      cursor: 'pointer',
-                      background: `linear-gradient(to right, ${increase_alpha(d.backgroundColor,1)} 0, ${increase_alpha(d.backgroundColor,1)} 2.5rem, transparent 2.5rem)`
-                    }}
-                  >
-                    {d.label}
-                  </span>
-                ))}
+              <div className="inputs-wrapper">
+                {datasets.length > 0 && (
+                  <div className="paste-wrapper">
+                    <input
+                      className="chart-name-input"
+                      placeholder={chartName || "Chart name (e.g. Beidou Burst DMG vs ER%)"}
+                      onBlur={(e) => setChartName(e.currentTarget.value)}
+                      onKeyDown={(e) => {
+                        if (e.key === 'Enter') {
+                          setChartName(e.currentTarget.value);
+                          e.currentTarget.blur();
+                        }
+                      }}
+                    />
+                    <div className="set-line-btn" onClick={() => setLineMode( Number(!lineMode) )}>
+                      { lineMode ? <>
+                          <FontAwesomeIcon icon={faArrowRight} />
+                            {' Descending Line'}
+                          </> 
+                        : <>
+                          <FontAwesomeIcon icon={faArrowUp} />
+                            {' Ascending Line'}
+                          </> 
+                        }
+                    </div>
+                  </div>
+                )}
+                <div className="paste-wrapper">
+                  <textarea
+                    placeholder="Paste Genshin Optimizer Chart's Min or Full Data here..."
+                    onChange={pasteToDataset}
+                  />
+                  {datasets.length > 0 && (
+                    <div className="flex-col">
+                      <input onChange={(e) => setSuffixY(e.currentTarget.value)} placeholder={suffixY || "Y-axis (e.g. dmg)"} />
+                      <input onChange={(e) => setSuffixX(e.currentTarget.value)} placeholder={suffixX || "X-axis (e.g. % ER)"} />
+                    </div>
+                  )}
+                  {/* <button onClick={() => setDatasets([])} className="btn">Clear</button> */}
+                </div>
+                {datasets.length > 0 && (
+                  <div className="chart-legend">
+                    {datasets.map( (d,i) => (
+                      <span 
+                        key={`chart-legend-${i}`}
+                        onClick={ () => toggleDatasetVisibility(i) }
+                        style={{
+                          textDecoration: d.hidden ? 'line-through' : 'none',
+                          opacity: d.hidden ? 0.4 : 1,
+                          cursor: 'pointer',
+                          background: `linear-gradient(to right, ${increase_alpha(d.backgroundColor,1)} 0, ${increase_alpha(d.backgroundColor,1)} 2.5rem, transparent 2.5rem)`
+                        }}
+                      >
+                        {d.label}
+                      </span>
+                    ))}
+                  </div>
+                )}
+                {datasets.length > 0 && (
+                  <div className="relative">
+                    <Line
+                      data={{
+                        datasets: displayDatasets,
+                      }}
+                      options={options}
+                    />
+                    <div className="chart-overlay">{chartName}</div>
+                  </div>
+                )}
               </div>
-            )}
-            {datasets.length > 0 && (
-              <div className="relative">
-                <Line
-                  data={{
-                    datasets: displayDatasets,
-                  }}
-                  options={options}
-                />
-                <div className="chart-overlay">{chartName}</div>
-              </div>
-            )}
-          </div>
+            </>
+          )}
         </div>
       </div>
     </div>

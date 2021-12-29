@@ -70,6 +70,32 @@ canvas {
   margin-bottom: 5rem;
 }
 
+.chart-link {
+  margin-bottom: 10px;
+  opacity: 0.65;
+  transition: 0.3s;
+  font-size: 0.85rem;
+}
+
+.chart-link:hover {
+  opacity: 1;
+}
+
+.chart-link input {
+  height: 1rem;
+  margin-top: 0;
+  margin-bottom: 0.8rem;
+  padding-left: 0.8rem;
+  padding-right: 0.8rem;
+  max-width: 45ch;
+  width: 50vw;
+}
+
+.loading-chart-wrapper {
+  display: flex;
+  justify-content: center;
+}
+
 .card-wrapper {
   position: relative;
   display: flex;
@@ -85,6 +111,35 @@ canvas {
   overflow: hidden;
   z-index: 30;
   column-gap: 1rem;
+}
+
+.charts-manager {
+  position: absolute;
+  background-color: #fff2;
+  width: calc(100% - 32px);
+  height: 0;
+}
+
+.share-btn {
+  top: -5px;
+  right: -5px;
+  position: absolute;
+  padding: 5px;
+  z-index: 99;
+  border-radius: 0.3rem;
+}
+
+.share-btn.spacing:hover {
+  background-color: #fff5;
+  color: black;
+}
+
+.pointer {
+  cursor: pointer;
+}
+
+.spacing svg {
+  margin-left: 10px;
 }
 
 .card-content {
