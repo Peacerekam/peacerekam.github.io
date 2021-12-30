@@ -59,6 +59,7 @@ const MainPage = () => {
   }, [datasets, lineMode, suffixX, suffixY, chartName])
 
   const loadShare = async (_shareId) => {
+    if (!_shareId) return;
     setLoading(true);
     const url = `https://mimee.ovh/api/share/${_shareId}`
     
@@ -400,7 +401,8 @@ const MainPage = () => {
                   <div className="paste-wrapper">
                     <input
                       className="chart-name-input"
-                      placeholder={chartName || "Chart name (e.g. Beidou Burst DMG vs ER%)"}
+                      placeholder="Chart name (e.g. Beidou Burst DMG vs ER%)"
+                      defaultValue={chartName || ""}
                       onBlur={(e) => setChartName(e.currentTarget.value)}
                       onKeyDown={(e) => {
                         if (e.key === 'Enter') {
@@ -429,8 +431,8 @@ const MainPage = () => {
                   />
                   {datasets.length > 0 && (
                     <div className="flex-col">
-                      <input onChange={(e) => setSuffixY(e.currentTarget.value)} placeholder={suffixY || "Y-axis (e.g. dmg)"} />
-                      <input onChange={(e) => setSuffixX(e.currentTarget.value)} placeholder={suffixX || "X-axis (e.g. % ER)"} />
+                      <input onChange={(e) => setSuffixY(e.currentTarget.value)} placeholder="Y-axis (e.g. dmg)" defaultValue={suffixY || ""}/>
+                      <input onChange={(e) => setSuffixX(e.currentTarget.value)} placeholder="X-axis (e.g. % ER)" defaultValue={suffixX || ""} />
                     </div>
                   )}
                   {/* <button onClick={() => setDatasets([])} className="btn">Clear</button> */}
