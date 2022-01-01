@@ -27,6 +27,10 @@ const MainPage = () => {
   }, [])
 
   useEffect(() => {
+    document.title = chartName
+  }, [chartName])
+
+  useEffect(() => {
     const _datasets = datasets.slice()
 
     let edgePoint = null;
