@@ -27,7 +27,7 @@ const MainPage = () => {
   }, [])
 
   useEffect(() => {
-    document.title = chartName
+    document.title = chartName || "Charts for Genshin Optimizer"
   }, [chartName])
 
   useEffect(() => {
