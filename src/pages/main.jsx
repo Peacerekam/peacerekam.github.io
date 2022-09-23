@@ -7,6 +7,9 @@ import { SketchPicker } from 'react-color';
 import { SpinnerCircularFixed } from 'spinners-react';
 import axios from 'axios';
 
+// const API_URL = 'http://localhost:5022';
+const API_URL = 'https://mimee.ovh';
+
 const MainPage = () => {
   const [datasets, setDatasets] = useState([])
   const [currentDataset, setCurrentDataset] = useState(0)
@@ -65,8 +68,9 @@ const MainPage = () => {
   const loadShare = async (_shareId) => {
     if (!_shareId) return;
     setLoading(true);
-    const url = `https://mimee.ovh/api/share/${_shareId}`
-    
+
+    const url = `${API_URL}/api/share/${_shareId}`
+
     try {
       const response = await axios.get(url);
       setTimeout(() => {
@@ -86,7 +90,8 @@ const MainPage = () => {
   const shareChart = async () => {
     setAwaiting(true);
     
-    const url = 'https://mimee.ovh/api/share/'
+    // const url = 'https://mimee.ovh/api/share/'
+    const url = `${API_URL}/api/share/`
     
     try {
       const dataToSave = {
@@ -310,7 +315,8 @@ const MainPage = () => {
         Share link:
         <input
           onClick={e => e.currentTarget.setSelectionRange(0, e.currentTarget.value.length)}
-          value={window.location.href}
+          // value={window.location.href}
+          value={`${API_URL}/share/${shareId}`}
         />
       </div>
     )}
@@ -460,7 +466,7 @@ const MainPage = () => {
                   </div>
                 )}
                 {datasets.length > 0 && (
-                  <div className="relative">
+                  <div className="relative chart-wrapper">
                     <Line
                       data={{
                         datasets: displayDatasets,
