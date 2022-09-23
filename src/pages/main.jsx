@@ -188,7 +188,7 @@ const MainPage = () => {
         ticks: {
           color: '#ebecee',
           callback: function(value, index, values) {
-            return value + suffixX;
+            return `${value}${suffixX}`
           }
         }
       },
@@ -200,7 +200,7 @@ const MainPage = () => {
         ticks: {
           color: '#ebecee',
           callback: function(value, index, values) {
-            return `${value} ${suffixY}`
+            return `${value}${suffixY}`
           } 
         }
       }
